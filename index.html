@@ -118,7 +118,10 @@
   });
   $('goA').addEventListener('click', async () => {
     $('banA').classList.remove('on');
-    if (!ask) return;
+    if (!ask) {                                   // Chrome has not given its install box yet -> show the menu way
+      $(/android/i.test(navigator.userAgent) ? 'banM' : 'banD').classList.add('on');
+      return;
+    }
     ask.prompt();
     const r = await ask.userChoice.catch(() => ({}));
     if (r && r.outcome !== 'accepted') snooze(SN_BTN, 1);
@@ -130,17 +133,17 @@
     try { localStorage.removeItem(SN_BTN); localStorage.removeItem(SN_HINT); } catch (e) {}
   });
 
-  // Chrome holds back its install box until the user has tapped and stayed ~30 s.
-  // Wait for it; show the hint only if it still has not come (and the app is really not installed).
-  const android = /android/i.test(navigator.userAgent);
+  // Chrome often never sends its install box here (all taps go into the Google iframe, so Chrome sees no tap
+  // on this page). So the Install button is shown anyway: tap -> Chrome's box if it came, else the menu way.
+  // The tap on this button also counts as a tap on this page, so next time Chrome usually gives its box.
   const chromium = /chrome|crios|edg\//i.test(navigator.userAgent) && !/iphone|ipad|ipod/i.test(navigator.userAgent);
   setTimeout(async () => {
-    if (!chromium || installed || ask || snoozed(SN_HINT)) return;
+    if (!chromium || installed || snoozed(SN_BTN) || $('banA').classList.contains('on')) return;
     try {
       if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
     } catch (e) {}
-    if (!ask) $(android ? 'banM' : 'banD').classList.add('on');   // phone: menu hint, computer: address-bar icon hint
-  }, 40000);
+    $('banA').classList.add('on');
+  }, 2500);
 
   // iPhone / iPad Safari: no install box exists, show the 2-step hint
   const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
