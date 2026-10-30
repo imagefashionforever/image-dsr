@@ -10,6 +10,10 @@
 <meta name="apple-mobile-web-app-title" content="Image DSR">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="icon" href="favicon.ico?v=7" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=7">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png?v=7">
@@ -20,7 +24,7 @@
   html, body { margin: 0; height: 100%; background: var(--bg); font-family: Poppins, "Segoe UI", Arial, sans-serif; color: var(--text); }
   #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg); }
   #load { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #fff; transition: opacity .3s; }
-  #load img { width: 180px; }
+  #load img { width: 128px; height: 128px; border-radius: 28px; }
   #load span { color: var(--muted); font-size: 14px; }
   .ban { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10; background: #fff; border-radius: 16px;
          box-shadow: 0 10px 34px rgba(40,10,60,.25); padding: 14px; display: none; gap: 12px; align-items: center; max-width: 520px; margin: 0 auto; }
@@ -35,7 +39,7 @@
 </style>
 </head>
 <body>
-<div id="load"><img src="icon-512.png" alt="Image"><span>Opening Image DSR...</span></div>
+<div id="load"><img src="favicon-128.png" alt="Image" width="128" height="128"><span>Opening Image DSR...</span></div>
 
 <!-- =========================================================
      PUT YOUR APPS SCRIPT WEB APP LINK HERE (Deploy > Manage deployments > Web app URL, ends with /exec)
@@ -101,7 +105,7 @@
   let ask = null;
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); ask = e;
-    if (!installed && !snoozed()) setTimeout(() => $('banA').classList.add('on'), 2500);
+    if (!installed && !snoozed()) $('banA').classList.add('on');   // show at once
   });
   $('goA').addEventListener('click', async () => {
     $('banA').classList.remove('on');
@@ -124,12 +128,12 @@
       if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
     } catch (e) {}
     $(android ? 'banM' : 'banD').classList.add('on');   // phone: menu hint, computer: address-bar icon hint
-  }, 5000);
+  }, 3000);
 
   // iPhone / iPad Safari: no install box exists, show the 2-step hint
   const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const safari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-  if (iOS && safari && !installed && !snoozed()) setTimeout(() => $('banI').classList.add('on'), 2500);
+  if (iOS && safari && !installed && !snoozed()) setTimeout(() => $('banI').classList.add('on'), 800);
 </script>
 </body>
 </html>
