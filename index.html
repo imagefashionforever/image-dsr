@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-title" content="Image DSR">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="favicon.ico?v=6" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=6">
-<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png?v=6">
-<link rel="icon" type="image/png" sizes="128x128" href="favicon-128.png?v=6">
+<link rel="icon" href="favicon.ico?v=7" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=7">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png?v=7">
+<link rel="icon" type="image/png" sizes="128x128" href="favicon-128.png?v=7">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   :root { --brand: #9c1b74; --violet: #4b1c8c; --text: #1f1a2b; --muted: #6b6478; --bg: #f5f3f8; }
@@ -40,7 +40,7 @@
 <!-- =========================================================
      PUT YOUR APPS SCRIPT WEB APP LINK HERE (Deploy > Manage deployments > Web app URL, ends with /exec)
      ========================================================= -->
-<iframe id="app" title="Image DSR" allow="camera; microphone; clipboard-read; clipboard-write; geolocation"
+<iframe id="app" title="Image DSR" credentialless allow="camera; microphone; clipboard-read; clipboard-write; geolocation"
         src="https://script.google.com/macros/s/AKfycbzPmnCgugVUtT0TlRGaT_A9yEuz4H2claaL_iFXx-XmUjPmNkwRomZ031KHk3tKIFtb-g/exec"></iframe>
 
 <!-- Android / Chrome: one-tap install -->
@@ -55,6 +55,12 @@
   <img src="icon-192.png" alt="">
   <div class="t"><b>Install App</b>Tap <b style="display:inline">&#8942;</b> (top right), then <b style="display:inline">Install app</b> / <b style="display:inline">Add to Home screen</b>.</div>
   <button class="x" data-x="banM" type="button" aria-label="Close">&times;</button>
+</div>
+<!-- Computer (Chrome / Edge) without the install box: hint -->
+<div class="ban" id="banD">
+  <img src="icon-192.png" alt="">
+  <div class="t"><b>Install App</b>Click the install icon <b style="display:inline">&#10515;</b> at the right end of the address bar, or menu &#8942; &rarr; <b style="display:inline">Install Image DSR</b>.</div>
+  <button class="x" data-x="banD" type="button" aria-label="Close">&times;</button>
 </div>
 <!-- iPhone: Apple allows only the Share menu -->
 <div class="ban" id="banI">
@@ -71,6 +77,20 @@
   setTimeout(() => { const l = $('load'); if (l) { l.style.opacity = 0; setTimeout(() => l.remove(), 300); } }, 8000);
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  // The app is opened WITHOUT Google cookies ("credentialless"), so 2 Google accounts in Chrome don't break it.
+  // Its own memory is wiped each time, so it keeps MPIN etc. here (only keys starting with dsr_).
+  const APP_ORIGIN = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
+  window.addEventListener('message', e => {
+    if (!APP_ORIGIN.test(e.origin) || !e.data || !e.data.dsr) return;
+    if (e.data.dsr === 'hello') {
+      const data = {};
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^dsr_/.test(k) && k !== 'dsr_a2hs_snooze') data[k] = localStorage.getItem(k); } } catch (x) {}
+      e.source.postMessage({ dsr: 'snapshot', data: data }, e.origin);
+    } else if (e.data.dsr === 'set' && /^dsr_/.test(String(e.data.key))) {
+      try { e.data.value == null ? localStorage.removeItem(e.data.key) : localStorage.setItem(e.data.key, String(e.data.value)); } catch (x) {}
+    }
+  });
 
   const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const snoozed = () => { try { return Date.now() < +(localStorage.getItem('dsr_a2hs_snooze') || 0); } catch (e) { return false; } };
@@ -92,17 +112,18 @@
     ask = null;
   });
   // installed: just hide (no long snooze), so after an uninstall the offer comes back by itself
-  window.addEventListener('appinstalled', () => { $('banA').classList.remove('on'); $('banM').classList.remove('on'); try { localStorage.removeItem('dsr_a2hs_snooze'); } catch (e) {} });
+  window.addEventListener('appinstalled', () => { ['banA', 'banM', 'banD'].forEach(id => $(id).classList.remove('on')); try { localStorage.removeItem('dsr_a2hs_snooze'); } catch (e) {} });
 
   // Android Chrome sometimes holds back its install box (e.g. just after an uninstall):
   // then show the 2-step hint instead, but only if the app is really not installed
   const android = /android/i.test(navigator.userAgent);
+  const chromium = /chrome|crios|edg\//i.test(navigator.userAgent) && !/iphone|ipad|ipod/i.test(navigator.userAgent);
   setTimeout(async () => {
-    if (!android || installed || ask || snoozed()) return;
+    if (!chromium || installed || ask || snoozed()) return;
     try {
       if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
     } catch (e) {}
-    $('banM').classList.add('on');
+    $(android ? 'banM' : 'banD').classList.add('on');   // phone: menu hint, computer: address-bar icon hint
   }, 5000);
 
   // iPhone / iPad Safari: no install box exists, show the 2-step hint
