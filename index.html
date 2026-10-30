@@ -48,35 +48,26 @@
 <iframe id="app" title="Image DSR" credentialless allow="camera; microphone; clipboard-read; clipboard-write; geolocation"
         src="https://script.google.com/macros/s/AKfycbzPmnCgugVUtT0TlRGaT_A9yEuz4H2claaL_iFXx-XmUjPmNkwRomZ031KHk3tKIFtb-g/exec"></iframe>
 
-<!-- Android / Chrome: one-tap install -->
+<!-- Browser can install: one-tap Install -->
 <div class="ban" id="banA">
   <img src="icon-192.png" alt="">
-  <div class="t"><b>Install App</b>
-    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="go" id="goA" type="button">Install</button>
-      <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
-    </span></div>
+  <div class="t" style="display:flex;align-items:center"><b>Install App</b></div>
+  <button class="go" id="goA" type="button">Install</button>
   <button class="x" data-x="banA" type="button" aria-label="Close">&times;</button>
 </div>
-<!-- Android without the install box: 2-step hint -->
+<!-- Android, browser can NOT install: download the app (APK) -->
+<div class="ban" id="banP">
+  <img src="icon-192.png" alt="">
+  <div class="t" style="display:flex;align-items:center"><b>Install App</b></div>
+  <button class="go" id="goP" type="button" style="background:#12805c">Download App</button>
+  <button class="x" data-x="banP" type="button" aria-label="Close">&times;</button>
+</div>
+<!-- Samsung phone (Auto Blocker stops APKs) or no APK: menu way -->
 <div class="ban" id="banM">
   <img src="icon-192.png" alt="">
   <div class="t"><b>Install App</b>Tap <b style="display:inline">&#8942;</b> (top right), then <b style="display:inline">Install app</b> / <b style="display:inline">Add to Home screen</b>.
-    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="go goChrome" type="button">Open in Chrome</button>
-      <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
-    </span></div>
+    Inside WhatsApp: first tap <b style="display:inline">&#8942;</b> &rarr; <b style="display:inline">Open in browser</b>.</div>
   <button class="x" data-x="banM" type="button" aria-label="Close">&times;</button>
-</div>
-<!-- Android: WhatsApp / Instagram inside browser, Mi / Vivo / Oppo / UC browser etc. -> Open in Chrome or download the app -->
-<div class="ban" id="banO">
-  <img src="icon-192.png" alt="">
-  <div class="t"><b>Install App</b>
-    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="go goChrome" type="button">Open in Chrome</button>
-      <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
-    </span></div>
-  <button class="x" data-x="banO" type="button" aria-label="Close">&times;</button>
 </div>
 <!-- Computer (Chrome / Edge) without the install box: hint -->
 <div class="ban" id="banD">
@@ -116,80 +107,66 @@
 
   const installed = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches ||
                     matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
-  // two separate snoozes: closing the Install button / closing a hint (a closed hint must not block the Install button)
-  const SN_BTN = 'dsr_a2hs_snooze', SN_HINT = 'dsr_a2hs_hint';
-  const snoozed = k => { try { return Date.now() < +(localStorage.getItem(k) || 0); } catch (e) { return false; } };
-  // × closes the banner only for this visit: it comes back on the next launch (no snooze is saved)
-  const snooze = () => {};
-  try { localStorage.removeItem(SN_BTN); localStorage.removeItem(SN_HINT); } catch (e) {}   // clear old snoozes
-  const hideHints = () => ['banM', 'banD', 'banO'].forEach(id => $(id).classList.remove('on'));
-  document.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => {
-    $(b.dataset.x).classList.remove('on'); snooze(b.dataset.x === 'banA' ? SN_BTN : SN_HINT, 1);
-  }));
+  try { localStorage.removeItem('dsr_a2hs_snooze'); localStorage.removeItem('dsr_a2hs_hint'); } catch (e) {}   // old snoozes
+  // x closes a banner only for this visit; it comes back on the next launch
+  let closed = false;
+  const ANDROID = ['banA', 'banP', 'banM', 'banD'];
+  const show = id => { if (closed || installed) return; ANDROID.forEach(x => $(x).classList.toggle('on', x === id)); };
+  document.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => { $(b.dataset.x).classList.remove('on'); closed = true; }));
 
-  // Android / desktop Chrome, Edge, Samsung Internet: the browser gives us its install box.
-  // Samsung gives it at once; Chrome only after a tap + about 30 seconds on the page, so it can come late.
-  let ask = null;
+  const UA = navigator.userAgent;
+  const isAndroid = /android/i.test(UA);
+  const isApple = /iphone|ipad|ipod/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const APK = 'image-dsr.apk';
+
+  // RULE: browser can install -> only "Install".  Browser can not -> "Download App" (APK).
+  //       Samsung phones block APKs (Auto Blocker) -> the menu way instead of the APK.
+  let ask = null, decided = false;
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); ask = e;
-    hideHints();                                                     // the real button replaces any hint
-    if (!installed && !snoozed(SN_BTN)) $('banA').classList.add('on');
+    show('banA');                                   // also replaces Download / hint if Chrome gives it late
   });
   $('goA').addEventListener('click', async () => {
     $('banA').classList.remove('on');
-    if (!ask) {                                   // Chrome has not given its install box yet -> show the menu way
-      $(/android/i.test(navigator.userAgent) ? 'banM' : 'banD').classList.add('on');
-      return;
-    }
+    if (!ask) return;
     ask.prompt();
-    const r = await ask.userChoice.catch(() => ({}));
-    if (r && r.outcome !== 'accepted') snooze(SN_BTN, 1);
+    await ask.userChoice.catch(() => ({}));
     ask = null;
   });
-  // installed: just hide (no long snooze), so after an uninstall the offer comes back by itself
-  window.addEventListener('appinstalled', () => {
-    ['banA', 'banM', 'banD', 'banO'].forEach(id => $(id).classList.remove('on'));
-    try { localStorage.removeItem(SN_BTN); localStorage.removeItem(SN_HINT); } catch (e) {}
-  });
+  $('goP').addEventListener('click', () => { location.href = APK; });
+  window.addEventListener('appinstalled', () => { ANDROID.forEach(x => $(x).classList.remove('on')); closed = true; });
 
-  // Chrome often never sends its install box here (all taps go into the Google iframe, so Chrome sees no tap
-  // on this page). So the Install button is shown anyway: tap -> Chrome's box if it came, else the menu way.
-  // The tap on this button also counts as a tap on this page, so next time Chrome usually gives its box.
-  const UA = navigator.userAgent;
-  const chromium = /chrome|crios|edg\//i.test(UA) && !/iphone|ipad|ipod/i.test(UA);
-  // Android browsers that can NOT install the app: in-app browsers (WhatsApp, Instagram, Facebook ...) and
-  // phone-maker / other browsers (Mi, Vivo, Oppo, Realme, UC, Opera Mini, Firefox ...)
-  const isAndroid = /android/i.test(UA);
-  const goodBrowser = /SamsungBrowser|EdgA|Brave/i.test(UA) ||
-    (/Chrome\/[\d.]+ Mobile/i.test(UA) && !/; wv\)|MiuiBrowser|XiaoMi|VivoBrowser|HeyTap|OppoBrowser|RealmeBrowser|UCBrowser|OPR|OPiOS|Opera|YaBrowser|Instagram|FBAN|FBAV|FB_IAB|WhatsApp|Line\/|Snapchat|GSA\//i.test(UA));
-  const weakAndroid = isAndroid && !goodBrowser;
+  async function samsungPhone() {
+    if (/SamsungBrowser|SM-[A-Z0-9]|SAMSUNG/i.test(UA)) return true;
+    try {                                           // Chrome hides the phone model in its UA; ask for it
+      if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+        const h = await navigator.userAgentData.getHighEntropyValues(['model']);
+        return /^SM-|samsung|galaxy/i.test(h.model || '');
+      }
+    } catch (e) {}
+    return false;
+  }
+  async function apkThere() {
+    try { const r = await fetch(APK, { method: 'HEAD', cache: 'no-store' }); return r.ok; } catch (e) { return false; }
+  }
 
-  // APK in this folder (image-dsr.apk): the "Download App" buttons show only when the file is there
-  const APK = 'image-dsr.apk';
-  if (isAndroid && !installed) fetch(APK, { method: 'HEAD', cache: 'no-store' }).then(r => {
-    if (r.ok) document.querySelectorAll('.apkBtn').forEach(b => { b.style.display = ''; });
-  }).catch(() => {});
-  document.querySelectorAll('.apkBtn').forEach(b => b.addEventListener('click', () => { location.href = APK; }));
-
-  // Open this same page in Chrome (works from WhatsApp and other browsers); no Chrome -> Play Store page of Chrome
-  document.querySelectorAll('.goChrome').forEach(b => b.addEventListener('click', () => {
-    const fb = encodeURIComponent('https://play.google.com/store/apps/details?id=com.android.chrome');
-    location.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + fb + ';end';
-  }));
-  if (weakAndroid && !installed) setTimeout(() => $('banO').classList.add('on'), 1500);
-
-  setTimeout(async () => {
-    if (!chromium || weakAndroid || installed || snoozed(SN_BTN) || $('banA').classList.contains('on')) return;
+  // give the browser 3 seconds to offer its install box, then decide
+  if (!installed && !isApple) setTimeout(async () => {
+    if (ask) return;
     try {
       if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
     } catch (e) {}
-    $('banA').classList.add('on');
-  }, 2500);
+    if (ask) return;
+    if (!isAndroid) { if (/chrome|edg\//i.test(UA)) show('banD'); return; }   // computer: address-bar icon hint
+    const [sam, apk] = await Promise.all([samsungPhone(), apkThere()]);
+    if (ask) return;
+    show(!sam && apk ? 'banP' : 'banM');
+  }, 3000);
 
   // iPhone / iPad Safari: no install box exists, show the 2-step hint
   const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const safari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-  if (iOS && safari && !installed && !snoozed(SN_HINT)) setTimeout(() => $('banI').classList.add('on'), 800);
+  if (iOS && safari && !installed) setTimeout(() => $('banI').classList.add('on'), 800);
 </script>
 </body>
 </html>
