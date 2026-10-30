@@ -51,15 +51,21 @@
 <!-- Android / Chrome: one-tap install -->
 <div class="ban" id="banA">
   <img src="icon-192.png" alt="">
-  <div class="t" style="display:flex;align-items:center"><b>Install App</b></div>
-  <button class="go" id="goA" type="button">Install</button>
+  <div class="t"><b>Install App</b>
+    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="go" id="goA" type="button">Install</button>
+      <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
+    </span></div>
   <button class="x" data-x="banA" type="button" aria-label="Close">&times;</button>
 </div>
 <!-- Android without the install box: 2-step hint -->
 <div class="ban" id="banM">
   <img src="icon-192.png" alt="">
   <div class="t"><b>Install App</b>Tap <b style="display:inline">&#8942;</b> (top right), then <b style="display:inline">Install app</b> / <b style="display:inline">Add to Home screen</b>.
-    <button class="go apkBtn" type="button" style="display:none;margin-top:8px;background:#12805c">Or Download App</button></div>
+    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="go goChrome" type="button">Open in Chrome</button>
+      <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
+    </span></div>
   <button class="x" data-x="banM" type="button" aria-label="Close">&times;</button>
 </div>
 <!-- Android: WhatsApp / Instagram inside browser, Mi / Vivo / Oppo / UC browser etc. -> Open in Chrome or download the app -->
@@ -67,7 +73,7 @@
   <img src="icon-192.png" alt="">
   <div class="t"><b>Install App</b>
     <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="go" id="goChrome" type="button">Open in Chrome</button>
+      <button class="go goChrome" type="button">Open in Chrome</button>
       <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
     </span></div>
   <button class="x" data-x="banO" type="button" aria-label="Close">&times;</button>
@@ -166,10 +172,10 @@
   document.querySelectorAll('.apkBtn').forEach(b => b.addEventListener('click', () => { location.href = APK; }));
 
   // Open this same page in Chrome (works from WhatsApp and other browsers); no Chrome -> Play Store page of Chrome
-  $('goChrome').addEventListener('click', () => {
+  document.querySelectorAll('.goChrome').forEach(b => b.addEventListener('click', () => {
     const fb = encodeURIComponent('https://play.google.com/store/apps/details?id=com.android.chrome');
     location.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + fb + ';end';
-  });
+  }));
   if (weakAndroid && !installed) setTimeout(() => $('banO').classList.add('on'), 1500);
 
   setTimeout(async () => {
