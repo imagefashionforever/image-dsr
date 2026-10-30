@@ -58,8 +58,19 @@
 <!-- Android without the install box: 2-step hint -->
 <div class="ban" id="banM">
   <img src="icon-192.png" alt="">
-  <div class="t"><b>Install App</b>Tap <b style="display:inline">&#8942;</b> (top right), then <b style="display:inline">Install app</b> / <b style="display:inline">Add to Home screen</b>.</div>
+  <div class="t"><b>Install App</b>Tap <b style="display:inline">&#8942;</b> (top right), then <b style="display:inline">Install app</b> / <b style="display:inline">Add to Home screen</b>.
+    <button class="go apkBtn" type="button" style="display:none;margin-top:8px;background:#12805c">Or Download App</button></div>
   <button class="x" data-x="banM" type="button" aria-label="Close">&times;</button>
+</div>
+<!-- Android: WhatsApp / Instagram inside browser, Mi / Vivo / Oppo / UC browser etc. -> Open in Chrome or download the app -->
+<div class="ban" id="banO">
+  <img src="icon-192.png" alt="">
+  <div class="t"><b>Install App</b>
+    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="go" id="goChrome" type="button">Open in Chrome</button>
+      <button class="go apkBtn" type="button" style="display:none;background:#12805c">Download App</button>
+    </span></div>
+  <button class="x" data-x="banO" type="button" aria-label="Close">&times;</button>
 </div>
 <!-- Computer (Chrome / Edge) without the install box: hint -->
 <div class="ban" id="banD">
@@ -102,8 +113,10 @@
   // two separate snoozes: closing the Install button / closing a hint (a closed hint must not block the Install button)
   const SN_BTN = 'dsr_a2hs_snooze', SN_HINT = 'dsr_a2hs_hint';
   const snoozed = k => { try { return Date.now() < +(localStorage.getItem(k) || 0); } catch (e) { return false; } };
-  const snooze = (k, days) => { try { localStorage.setItem(k, Date.now() + days * 86400000); } catch (e) {} };
-  const hideHints = () => ['banM', 'banD'].forEach(id => $(id).classList.remove('on'));
+  // × closes the banner only for this visit: it comes back on the next launch (no snooze is saved)
+  const snooze = () => {};
+  try { localStorage.removeItem(SN_BTN); localStorage.removeItem(SN_HINT); } catch (e) {}   // clear old snoozes
+  const hideHints = () => ['banM', 'banD', 'banO'].forEach(id => $(id).classList.remove('on'));
   document.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => {
     $(b.dataset.x).classList.remove('on'); snooze(b.dataset.x === 'banA' ? SN_BTN : SN_HINT, 1);
   }));
@@ -129,16 +142,38 @@
   });
   // installed: just hide (no long snooze), so after an uninstall the offer comes back by itself
   window.addEventListener('appinstalled', () => {
-    ['banA', 'banM', 'banD'].forEach(id => $(id).classList.remove('on'));
+    ['banA', 'banM', 'banD', 'banO'].forEach(id => $(id).classList.remove('on'));
     try { localStorage.removeItem(SN_BTN); localStorage.removeItem(SN_HINT); } catch (e) {}
   });
 
   // Chrome often never sends its install box here (all taps go into the Google iframe, so Chrome sees no tap
   // on this page). So the Install button is shown anyway: tap -> Chrome's box if it came, else the menu way.
   // The tap on this button also counts as a tap on this page, so next time Chrome usually gives its box.
-  const chromium = /chrome|crios|edg\//i.test(navigator.userAgent) && !/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const UA = navigator.userAgent;
+  const chromium = /chrome|crios|edg\//i.test(UA) && !/iphone|ipad|ipod/i.test(UA);
+  // Android browsers that can NOT install the app: in-app browsers (WhatsApp, Instagram, Facebook ...) and
+  // phone-maker / other browsers (Mi, Vivo, Oppo, Realme, UC, Opera Mini, Firefox ...)
+  const isAndroid = /android/i.test(UA);
+  const goodBrowser = /SamsungBrowser|EdgA|Brave/i.test(UA) ||
+    (/Chrome\/[\d.]+ Mobile/i.test(UA) && !/; wv\)|MiuiBrowser|XiaoMi|VivoBrowser|HeyTap|OppoBrowser|RealmeBrowser|UCBrowser|OPR|OPiOS|Opera|YaBrowser|Instagram|FBAN|FBAV|FB_IAB|WhatsApp|Line\/|Snapchat|GSA\//i.test(UA));
+  const weakAndroid = isAndroid && !goodBrowser;
+
+  // APK in this folder (image-dsr.apk): the "Download App" buttons show only when the file is there
+  const APK = 'image-dsr.apk';
+  if (isAndroid && !installed) fetch(APK, { method: 'HEAD', cache: 'no-store' }).then(r => {
+    if (r.ok) document.querySelectorAll('.apkBtn').forEach(b => { b.style.display = ''; });
+  }).catch(() => {});
+  document.querySelectorAll('.apkBtn').forEach(b => b.addEventListener('click', () => { location.href = APK; }));
+
+  // Open this same page in Chrome (works from WhatsApp and other browsers); no Chrome -> Play Store page of Chrome
+  $('goChrome').addEventListener('click', () => {
+    const fb = encodeURIComponent('https://play.google.com/store/apps/details?id=com.android.chrome');
+    location.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + fb + ';end';
+  });
+  if (weakAndroid && !installed) setTimeout(() => $('banO').classList.add('on'), 1500);
+
   setTimeout(async () => {
-    if (!chromium || installed || snoozed(SN_BTN) || $('banA').classList.contains('on')) return;
+    if (!chromium || weakAndroid || installed || snoozed(SN_BTN) || $('banA').classList.contains('on')) return;
     try {
       if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
     } catch (e) {}
