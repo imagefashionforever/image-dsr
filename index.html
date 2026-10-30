@@ -29,6 +29,7 @@
   .ban { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10; background: #fff; border-radius: 16px;
          box-shadow: 0 10px 34px rgba(40,10,60,.25); padding: 14px; display: none; gap: 12px; align-items: center; max-width: 520px; margin: 0 auto; }
   .ban.on { display: flex; }
+  #banA { z-index: 11; }   /* Install button always on top of any hint */
   .ban img { width: 46px; height: 46px; border-radius: 12px; border: 1px solid #eee; flex: 0 0 auto; }
   .ban .t { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; }
   .ban .t b { display: block; font-size: 15px; }
@@ -89,51 +90,62 @@
     if (!APP_ORIGIN.test(e.origin) || !e.data || !e.data.dsr) return;
     if (e.data.dsr === 'hello') {
       const data = {};
-      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^dsr_/.test(k) && k !== 'dsr_a2hs_snooze') data[k] = localStorage.getItem(k); } } catch (x) {}
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^dsr_/.test(k) && !/^dsr_a2hs/.test(k)) data[k] = localStorage.getItem(k); } } catch (x) {}
       e.source.postMessage({ dsr: 'snapshot', data: data }, e.origin);
     } else if (e.data.dsr === 'set' && /^dsr_/.test(String(e.data.key))) {
       try { e.data.value == null ? localStorage.removeItem(e.data.key) : localStorage.setItem(e.data.key, String(e.data.value)); } catch (x) {}
     }
   });
 
-  const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  const snoozed = () => { try { return Date.now() < +(localStorage.getItem('dsr_a2hs_snooze') || 0); } catch (e) { return false; } };
-  const snooze = days => { try { localStorage.setItem('dsr_a2hs_snooze', Date.now() + days * 86400000); } catch (e) {} };
-  document.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => { $(b.dataset.x).classList.remove('on'); snooze(1); }));
+  const installed = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches ||
+                    matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
+  // two separate snoozes: closing the Install button / closing a hint (a closed hint must not block the Install button)
+  const SN_BTN = 'dsr_a2hs_snooze', SN_HINT = 'dsr_a2hs_hint';
+  const snoozed = k => { try { return Date.now() < +(localStorage.getItem(k) || 0); } catch (e) { return false; } };
+  const snooze = (k, days) => { try { localStorage.setItem(k, Date.now() + days * 86400000); } catch (e) {} };
+  const hideHints = () => ['banM', 'banD'].forEach(id => $(id).classList.remove('on'));
+  document.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => {
+    $(b.dataset.x).classList.remove('on'); snooze(b.dataset.x === 'banA' ? SN_BTN : SN_HINT, 1);
+  }));
 
-  // Android / desktop Chrome, Edge, Samsung Internet: the browser gives us its install box
+  // Android / desktop Chrome, Edge, Samsung Internet: the browser gives us its install box.
+  // Samsung gives it at once; Chrome only after a tap + about 30 seconds on the page, so it can come late.
   let ask = null;
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); ask = e;
-    if (!installed && !snoozed()) $('banA').classList.add('on');   // show at once
+    hideHints();                                                     // the real button replaces any hint
+    if (!installed && !snoozed(SN_BTN)) $('banA').classList.add('on');
   });
   $('goA').addEventListener('click', async () => {
     $('banA').classList.remove('on');
     if (!ask) return;
     ask.prompt();
     const r = await ask.userChoice.catch(() => ({}));
-    if (r && r.outcome !== 'accepted') snooze(1);
+    if (r && r.outcome !== 'accepted') snooze(SN_BTN, 1);
     ask = null;
   });
   // installed: just hide (no long snooze), so after an uninstall the offer comes back by itself
-  window.addEventListener('appinstalled', () => { ['banA', 'banM', 'banD'].forEach(id => $(id).classList.remove('on')); try { localStorage.removeItem('dsr_a2hs_snooze'); } catch (e) {} });
+  window.addEventListener('appinstalled', () => {
+    ['banA', 'banM', 'banD'].forEach(id => $(id).classList.remove('on'));
+    try { localStorage.removeItem(SN_BTN); localStorage.removeItem(SN_HINT); } catch (e) {}
+  });
 
-  // Android Chrome sometimes holds back its install box (e.g. just after an uninstall):
-  // then show the 2-step hint instead, but only if the app is really not installed
+  // Chrome holds back its install box until the user has tapped and stayed ~30 s.
+  // Wait for it; show the hint only if it still has not come (and the app is really not installed).
   const android = /android/i.test(navigator.userAgent);
   const chromium = /chrome|crios|edg\//i.test(navigator.userAgent) && !/iphone|ipad|ipod/i.test(navigator.userAgent);
   setTimeout(async () => {
-    if (!chromium || installed || ask || snoozed()) return;
+    if (!chromium || installed || ask || snoozed(SN_HINT)) return;
     try {
       if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
     } catch (e) {}
-    $(android ? 'banM' : 'banD').classList.add('on');   // phone: menu hint, computer: address-bar icon hint
-  }, 3000);
+    if (!ask) $(android ? 'banM' : 'banD').classList.add('on');   // phone: menu hint, computer: address-bar icon hint
+  }, 40000);
 
   // iPhone / iPad Safari: no install box exists, show the 2-step hint
   const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const safari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-  if (iOS && safari && !installed && !snoozed()) setTimeout(() => $('banI').classList.add('on'), 800);
+  if (iOS && safari && !installed && !snoozed(SN_HINT)) setTimeout(() => $('banI').classList.add('on'), 800);
 </script>
 </body>
 </html>
