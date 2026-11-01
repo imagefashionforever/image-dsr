@@ -101,7 +101,7 @@ jobs:
           git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
           git add image-dsr.apk
           git commit -m "Image DSR app build ${{ github.run_number }}" || exit 0
-          git pull --rebase
+          git pull --rebase --autostash
           git push
 
       - name: First build note
