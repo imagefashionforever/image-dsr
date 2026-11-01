@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+// Build number from GitHub Actions (every build is a higher version, so phones accept it as an update)
+def buildNo = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+def ksFile = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'com.imagefashion.dsr'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.imagefashion.dsr'
+        minSdk 24
+        targetSdk 34
+        versionCode buildNo
+        versionName '1.0.' + buildNo
+    }
+
+    signingConfigs {
+        release {
+            if (ksFile) {
+                storeFile file(ksFile)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS') ?: 'dsr'
+                keyPassword System.getenv('KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ksFile ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation 'com.google.firebase:firebase-messaging'
+}

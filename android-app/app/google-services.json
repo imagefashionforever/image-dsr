@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "327455366476",
+    "project_id": "image-dsr",
+    "storage_bucket": "image-dsr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:327455366476:android:e442ce2c8c2303f88dc3e9",
+        "android_client_info": {
+          "package_name": "com.imagefashion.dsr"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZpgw-Igff8Kt1nKZ64xZjo2PTty0KU60"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
