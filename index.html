@@ -30,6 +30,7 @@
          box-shadow: 0 10px 34px rgba(40,10,60,.25); padding: 14px; display: none; gap: 12px; align-items: center; max-width: 520px; margin: 0 auto; }
   .ban.on { display: flex; }
   #banA { z-index: 11; }   /* Install button always on top of any hint */
+  #banN { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 12; }   /* notifications: at the top */
   .ban img { width: 46px; height: 46px; border-radius: 12px; border: 1px solid #eee; flex: 0 0 auto; }
   .ban .t { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; }
   .ban .t b { display: block; font-size: 15px; }
@@ -37,6 +38,19 @@
   .ban .go { background: linear-gradient(90deg, var(--brand), var(--violet)); color: #fff; white-space: nowrap; }
   .ban .x { background: none; color: var(--muted); padding: 6px 8px; font-size: 20px; line-height: 1; }
   .share { display: inline-block; vertical-align: -3px; width: 17px; height: 17px; }
+  /* iPhone salesman in Safari: must open from the Home Screen (full screen, no close) */
+  #iosHome { position: fixed; inset: 0; z-index: 50; background: #fff; display: none; flex-direction: column; align-items: center;
+             justify-content: center; padding: 24px 22px calc(24px + env(safe-area-inset-bottom)); text-align: center; overflow-y: auto; }
+  #iosHome.on { display: flex; }
+  #iosHome img.ic { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 6px 20px rgba(40,10,60,.18); }
+  #iosHome h2 { color: var(--brand); margin: 16px 0 4px; font-size: 21px; }
+  #iosHome p { margin: 0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+  #iosHome ol { text-align: left; margin: 0; padding: 0; list-style: none; max-width: 340px; width: 100%; }
+  #iosHome li { display: flex; gap: 12px; align-items: center; padding: 12px 14px; margin: 8px 0; border-radius: 14px; background: #f6f0fa; font-size: 15px; line-height: 1.35; }
+  #iosHome li span.n { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700;
+                       display: flex; align-items: center; justify-content: center; }
+  #iosHome .arrow { margin-top: 14px; font-size: 30px; color: #2f75d5; animation: bob 1.2s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(8px); } }
 </style>
 </head>
 <body>
@@ -55,10 +69,10 @@
   <button class="go" id="goA" type="button">Install</button>
   <button class="x" data-x="banA" type="button" aria-label="Close">&times;</button>
 </div>
-<!-- Android, browser can NOT install: download the app (APK) -->
+<!-- Android (Chrome / old app): download the Image DSR app (APK) -->
 <div class="ban" id="banP">
   <img src="icon-192.png" alt="">
-  <div class="t" style="display:flex;align-items:center"><b>Install App</b></div>
+  <div class="t" id="banPt"><b>Install Image DSR App</b>Get sale report reminders on your phone.</div>
   <button class="go" id="goP" type="button" style="background:#12805c">Download App</button>
   <button class="x" data-x="banP" type="button" aria-label="Close">&times;</button>
 </div>
@@ -69,12 +83,6 @@
     Inside WhatsApp: first tap <b style="display:inline">&#8942;</b> &rarr; <b style="display:inline">Open in browser</b>.</div>
   <button class="x" data-x="banM" type="button" aria-label="Close">&times;</button>
 </div>
-<!-- Computer (Chrome / Edge) without the install box: hint -->
-<div class="ban" id="banD">
-  <img src="icon-192.png" alt="">
-  <div class="t"><b>Install App</b>Click the install icon <b style="display:inline">&#10515;</b> at the right end of the address bar, or menu &#8942; &rarr; <b style="display:inline">Install Image DSR</b>.</div>
-  <button class="x" data-x="banD" type="button" aria-label="Close">&times;</button>
-</div>
 <!-- iPhone: Apple allows only the Share menu -->
 <div class="ban" id="banI">
   <img src="icon-192.png" alt="">
@@ -83,6 +91,27 @@
     <b style="display:inline">Share</b> below, then <b style="display:inline">Add to Home Screen</b>.</div>
   <button class="x" data-x="banI" type="button" aria-label="Close">&times;</button>
 </div>
+<!-- iPhone salesman using Safari: compulsory "Add to Home Screen" (reminders work only from there) -->
+<div id="iosHome" role="dialog" aria-modal="true">
+  <img class="ic" src="apple-touch-icon.png" alt="">
+  <h2>Add Image DSR to Home Screen</h2>
+  <p>Sale report reminders on iPhone work only when the app is opened from the Home Screen.<br>
+     &#2310;&#2312;&#2347;&#2379;&#2344; &#2346;&#2352; &#2352;&#2367;&#2350;&#2366;&#2311;&#2306;&#2337;&#2352; &#2325;&#2375; &#2354;&#2367;&#2319; &#2351;&#2375; &#2332;&#2364;&#2352;&#2370;&#2352;&#2368; &#2361;&#2376;&#2404;</p>
+  <ol>
+    <li><span class="n">1</span><span id="iosStep1">Tap
+      <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#2f75d5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+      <b>Share</b> at the bottom of Safari</span></li>
+    <li><span class="n">2</span><span>Scroll down, tap <b>Add to Home Screen</b>, then <b>Add</b></span></li>
+    <li><span class="n">3</span><span>Close Safari and open <b>Image DSR</b> from the Home Screen. Login and tap <b>Allow</b> for notifications.</span></li>
+  </ol>
+  <div class="arrow" id="iosArrow">&#11015;</div>
+</div>
+<!-- Salesman on a phone: turn on sale-report reminders -->
+<div class="ban" id="banN">
+  <img src="icon-192.png" alt="">
+  <div class="t" id="banNt"><b>Sale Report Reminders</b>Allow notifications to get a reminder when your sale report is pending.</div>
+  <button class="go" id="goN" type="button">Allow</button>
+</div>
 
 <script>
   const $ = id => document.getElementById(id);
@@ -90,6 +119,12 @@
   setTimeout(() => { const l = $('load'); if (l) { l.style.opacity = 0; setTimeout(() => l.remove(), 300); } }, 8000);
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  const UA = navigator.userAgent;
+  const isAndroid = /android/i.test(UA);
+  const isApple = /iphone|ipad|ipod/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const IS_MOBILE = isAndroid || isApple || /mobile/i.test(UA);       // laptop / desktop = false
+  const IS_APP = /ImageDSRApp\//.test(UA);                             // inside the Image DSR Android app (APK)
 
   // The app is opened WITHOUT Google cookies ("credentialless"), so 2 Google accounts in Chrome don't break it.
   // Its own memory is wiped each time, so it keeps MPIN etc. here (only keys starting with dsr_).
@@ -102,29 +137,42 @@
       e.source.postMessage({ dsr: 'snapshot', data: data }, e.origin);
     } else if (e.data.dsr === 'set' && /^dsr_/.test(String(e.data.key))) {
       try { e.data.value == null ? localStorage.removeItem(e.data.key) : localStorage.setItem(e.data.key, String(e.data.value)); } catch (x) {}
+    } else if (e.data.dsr === 'push-ask') {
+      if (!IS_APP) pushAsk(e.source, e.origin);       // salesman logged in on a phone (the app handles it itself)
+    } else if (e.data.dsr === 'native' && IS_APP) {
+      // the app page asks the Android app for something (only these actions)
+      const N = window.DSRNative, m = String(e.data.m || ''), a = Array.isArray(e.data.a) ? e.data.a : [];
+      let r = '';
+      if (N && ['getPushToken', 'appVersion', 'saveFile', 'shareFile', 'openUrl'].indexOf(m) >= 0 && typeof N[m] === 'function') {
+        try { r = N[m].apply(N, a.map(x => x == null ? '' : String(x))); } catch (x) { r = ''; }
+      }
+      e.source.postMessage({ dsr: 'native-reply', id: e.data.id, r: r == null ? '' : String(r) }, e.origin);
     }
   });
 
-  const installed = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches ||
+  // =====================================================================
+  // INSTALL BANNERS: phones / tablets only. Nothing on a laptop / computer.
+  // =====================================================================
+  const installed = IS_APP || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches ||
                     matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
   try { localStorage.removeItem('dsr_a2hs_snooze'); localStorage.removeItem('dsr_a2hs_hint'); } catch (e) {}   // old snoozes
   // x closes a banner only for this visit; it comes back on the next launch
   let closed = false;
-  const ANDROID = ['banA', 'banP', 'banM', 'banD'];
-  const show = id => { if (closed || installed) return; ANDROID.forEach(x => $(x).classList.toggle('on', x === id)); };
+  const ANDROID = ['banA', 'banP', 'banM'];
+  const show = id => { if (closed || installed || !IS_MOBILE) return; ANDROID.forEach(x => $(x).classList.toggle('on', x === id)); };
   document.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => { $(b.dataset.x).classList.remove('on'); closed = true; }));
 
-  const UA = navigator.userAgent;
-  const isAndroid = /android/i.test(UA);
-  const isApple = /iphone|ipad|ipod/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const APK = 'image-dsr.apk';
 
-  // RULE: browser can install -> only "Install".  Browser can not -> "Download App" (APK).
-  //       Samsung phones block APKs (Auto Blocker) -> the menu way instead of the APK.
-  let ask = null, decided = false;
+  // RULE (Android): the Image DSR app (APK) is the one to use: it blocks screenshots and gets reminders.
+  //       So Chrome and the old installed web app always offer "Download App". Only when no APK is on the
+  //       website yet: the browser's own "Install" (or the menu way).
+  let ask = null, apkMode = false;
   window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault(); ask = e;
-    show('banA');                                   // also replaces Download / hint if Chrome gives it late
+    e.preventDefault();                             // also stops Chrome's own install bar (laptop too)
+    if (!IS_MOBILE || apkMode) return;
+    ask = e;
+    show('banA');
   });
   $('goA').addEventListener('click', async () => {
     $('banA').classList.remove('on');
@@ -150,23 +198,95 @@
     try { const r = await fetch(APK, { method: 'HEAD', cache: 'no-store' }); return r.ok; } catch (e) { return false; }
   }
 
-  // give the browser 3 seconds to offer its install box, then decide
-  if (!installed && !isApple) setTimeout(async () => {
-    if (ask) return;
-    try {
-      if (navigator.getInstalledRelatedApps) { const a = await navigator.getInstalledRelatedApps(); if (a && a.length) return; }
-    } catch (e) {}
-    if (ask) return;
-    if (!isAndroid) { if (/chrome|edg\//i.test(UA)) show('banD'); return; }   // computer: address-bar icon hint
+  // Android (not inside the app): offer the APK, also to people using the old installed web app
+  if (isAndroid && !IS_APP) setTimeout(async () => {
     const [sam, apk] = await Promise.all([samsungPhone(), apkThere()]);
-    if (ask) return;
-    show(!sam && apk ? 'banP' : 'banM');
-  }, 3000);
+    if (apk) {
+      apkMode = true;
+      if (sam) $('banPt').innerHTML = '<b>Install Image DSR App</b>If Samsung blocks it: Settings &rarr; Security and privacy &rarr; Auto Blocker &rarr; Off, then install.';
+      if (!closed) { ANDROID.forEach(x => $(x).classList.toggle('on', x === 'banP')); }
+      return;
+    }
+    if (installed || ask) return;                   // no APK on the website yet: old behaviour
+    show('banM');
+  }, 1500);
 
   // iPhone / iPad Safari: no install box exists, show the 2-step hint
-  const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const safari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-  if (iOS && safari && !installed) setTimeout(() => $('banI').classList.add('on'), 800);
+  const safari = /safari/i.test(UA) && !/crios|fxios|edgios/i.test(UA);
+  if (isApple && safari && !installed) setTimeout(() => $('banI').classList.add('on'), 800);
+
+  // =====================================================================
+  // SALE REPORT NOTIFICATIONS (Firebase Cloud Messaging) - phones only
+  //   Fill FIREBASE + VAPID from Firebase console (Project settings).
+  // =====================================================================
+  const FIREBASE = { apiKey: 'AIzaSyAXvHFyNafSzYSpdyM8A18GHCekbyH9-WU', authDomain: 'image-dsr.firebaseapp.com', projectId: 'image-dsr', messagingSenderId: '327455366476', appId: '1:327455366476:web:852362a269bfc5538dc3e9' };
+  const VAPID = 'BK7C2h2ao5yfSq6iZu4aw_mFlyI4KEUHmniTD5PO51ufKIO9RugiPIyuSu3yLqYMjI4BgxrR1SRU3YuYOep5BRw';
+  const FB = 'https:' + '//www.gstatic.com/firebasejs/10.12.2/';
+  let fbReady = null, appWin = null, appOrigin = '';
+
+  function loadJs(src) {
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  }
+  function firebaseUp() {
+    return fbReady || (fbReady = (async () => {
+      await loadJs(FB + 'firebase-app-compat.js');
+      await loadJs(FB + 'firebase-messaging-compat.js');
+      firebase.initializeApp(FIREBASE);
+      const messaging = firebase.messaging();
+      // own scope, so it does not replace sw.js (install / offline)
+      const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './fcm/' });
+      // app open on screen: still show the normal phone notification
+      messaging.onMessage(p => {
+        const d = p.data || {};
+        reg.showNotification(d.title || 'Image DSR', {
+          body: d.body || '', icon: 'icon-192.png', tag: d.tag || 'dsr-pending', renotify: true,
+          vibrate: [300, 100, 300], data: { link: d.link || location.href } });
+      });
+      return { messaging: messaging, reg: reg };
+    })());
+  }
+  async function sendToken() {
+    try {
+      const f = await firebaseUp();
+      const t = await f.messaging.getToken({ vapidKey: VAPID, serviceWorkerRegistration: f.reg });
+      if (t && appWin) appWin.postMessage({ dsr: 'push-token', token: t }, appOrigin);
+    } catch (e) { console.log('notification token error', e); }
+  }
+  function pushAsk(win, origin) {
+    // iPhone / iPad salesman not opened from the Home Screen: blocked until he adds it there
+    if (isApple && !installed) {
+      const chromeIOS = /crios/i.test(UA);
+      const iPad = /ipad/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (chromeIOS) $('iosStep1').innerHTML = 'Tap <b>Share</b> (&#8679; next to the address bar)';
+      else if (iPad) $('iosStep1').innerHTML = 'Tap <b>Share</b> (&#8679;) at the <b>top right</b> of Safari';
+      if (iPad) $('iosHome').querySelector('h2').textContent = 'Add Image DSR to iPad Home Screen';
+      if (chromeIOS || iPad) $('iosArrow').style.display = 'none';
+      ['banA', 'banP', 'banM', 'banI', 'banN'].forEach(x => $(x).classList.remove('on'));
+      $('iosHome').classList.add('on');
+      return;
+    }
+    if (!IS_MOBILE || !('serviceWorker' in navigator)) return;
+    if (!('Notification' in window)) {                 // old iPhone (below iOS 16.4): no web notifications
+      if (isApple) {
+        $('banNt').innerHTML = '<b>Update your iPhone</b>Sale report reminders need iOS 16.4 or newer (Settings &rarr; General &rarr; Software Update).';
+        $('goN').style.display = 'none';
+        $('banN').classList.add('on');
+      }
+      return;
+    }
+    appWin = win; appOrigin = origin;
+    if (Notification.permission === 'granted') { $('banN').classList.remove('on'); sendToken(); return; }
+    if (Notification.permission === 'denied') {
+      $('banNt').innerHTML = '<b>Notifications are blocked</b>Phone Settings &rarr; Apps &rarr; Chrome &rarr; Notifications &rarr; ON, and site settings &rarr; Allow.';
+      $('goN').style.display = 'none';
+    }
+    $('banN').classList.add('on');                    // stays until Allowed (no close button)
+  }
+  $('goN').addEventListener('click', async () => {
+    const p = await Notification.requestPermission();
+    if (p === 'granted') { $('banN').classList.remove('on'); sendToken(); }
+    else pushAsk(appWin, appOrigin);
+  });
 </script>
 </body>
 </html>
