@@ -134,9 +134,12 @@
     if (e.data.dsr === 'hello') {
       const data = {};
       try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^dsr_/.test(k) && !/^dsr_a2hs/.test(k)) data[k] = localStorage.getItem(k); } } catch (x) {}
-      e.source.postMessage({ dsr: 'snapshot', data: data }, e.origin);
+      let stok = null; try { stok = sessionStorage.getItem('dsr_s_tok'); } catch (x) {}
+      e.source.postMessage({ dsr: 'snapshot', data: data, stok: stok }, e.origin);   // stok: login of this tab (survives refresh)
     } else if (e.data.dsr === 'set' && /^dsr_/.test(String(e.data.key))) {
       try { e.data.value == null ? localStorage.removeItem(e.data.key) : localStorage.setItem(e.data.key, String(e.data.value)); } catch (x) {}
+    } else if (e.data.dsr === 'stok') {
+      try { e.data.value ? sessionStorage.setItem('dsr_s_tok', String(e.data.value).slice(0, 100)) : sessionStorage.removeItem('dsr_s_tok'); } catch (x) {}
     } else if (e.data.dsr === 'push-ask') {
       if (!IS_APP) pushAsk(e.source, e.origin);       // salesman logged in on a phone (the app handles it itself)
     } else if (e.data.dsr === 'native' && IS_APP) {
