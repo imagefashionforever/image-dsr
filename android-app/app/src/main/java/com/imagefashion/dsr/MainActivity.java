@@ -41,7 +41,8 @@ import java.util.List;
 
 /**
  * Image DSR app: opens the launcher page (GitHub Pages) in a WebView.
- *  - FLAG_SECURE: screenshots and screen recording of the app are blocked (black screen in recent apps too)
+ *  - FLAG_SECURE: screenshots and screen recording of the app are blocked (black screen in recent apps too);
+ *    the web app turns it off only for an Admin login (setSecure) and on again at logout
  *  - camera, GPS, file upload (photo / Excel), file download and share work like in Chrome
  *  - sale-report reminders come as normal phone notifications (Firebase, see PushService)
  */
@@ -460,6 +461,16 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String appVersion() { return BuildConfig.VERSION_NAME; }
+
+        // "1" = block screenshots (default, login screen, everybody), "0" = allow (Admin login only)
+        @JavascriptInterface
+        public void setSecure(String on) {
+            final boolean block = !"0".equals(on);
+            runOnUiThread(() -> {
+                if (block) getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            });
+        }
 
         @JavascriptInterface
         public void saveFile(String b64, String name, String mime) {
