@@ -27,6 +27,8 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Android SDK is already installed on GitHub's machine (ANDROID_HOME)
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -97,9 +99,11 @@ jobs:
         if: steps.key.outputs.new == '0'
         run: |
           cp android-app/app/build/outputs/apk/release/app-release.apk image-dsr.apk
+          # latest version number: old apps see "Update" (launcher index.html reads this file)
+          echo '{"version":"1.0.${{ github.run_number }}","build":${{ github.run_number }}}' > app-version.json
           git config user.name "github-actions[bot]"
           git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
-          git add image-dsr.apk
+          git add image-dsr.apk app-version.json
           git commit -m "Image DSR app build ${{ github.run_number }}" || exit 0
           git pull --rebase --autostash
           git push
