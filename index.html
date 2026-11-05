@@ -31,6 +31,7 @@
   .ban.on { display: flex; }
   #banA { z-index: 11; }   /* Install button always on top of any hint */
   #banN { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 12; }   /* notifications: at the top */
+  #banU { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 13; }   /* app update: at the top */
   .ban img { width: 46px; height: 46px; border-radius: 12px; border: 1px solid #eee; flex: 0 0 auto; }
   .ban .t { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; }
   .ban .t b { display: block; font-size: 15px; }
@@ -107,6 +108,13 @@
   <div class="arrow" id="iosArrow">&#11015;</div>
 </div>
 <!-- Salesman on a phone: turn on sale-report reminders -->
+<!-- Android app older than the latest APK: update -->
+<div class="ban" id="banU">
+  <img src="icon-192.png" alt="">
+  <div class="t" id="banUt"><b>New version of Image DSR</b>Please update the app.</div>
+  <button class="go" id="goU" type="button" style="background:#12805c">Update</button>
+  <button class="x" id="xU" type="button" aria-label="Later">&times;</button>
+</div>
 <div class="ban" id="banN">
   <img src="icon-192.png" alt="">
   <div class="t" id="banNt"><b>Sale Report Reminders</b>Allow notifications to get a reminder when your sale report is pending.</div>
@@ -200,6 +208,25 @@
   async function apkThere() {
     try { const r = await fetch(APK, { method: 'HEAD', cache: 'no-store' }); return r.ok; } catch (e) { return false; }
   }
+
+  // Inside the Android app: newer APK on the website? -> "Update" (version from the app's user agent, e.g. ImageDSRApp/1.0.5)
+  if (IS_APP) (async () => {
+    const m = UA.match(/ImageDSRApp\/(\d+)\.(\d+)\.(\d+)/);
+    if (!m) return;
+    const mine = +m[3];
+    try {
+      const r = await fetch('app-version.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const v = await r.json();
+      let later = 0;
+      try { later = +sessionStorage.getItem('dsr_s_upd_later') || 0; } catch (e) {}
+      if (!(+v.build > mine) || later === +v.build) return;
+      $('banUt').innerHTML = '<b>New version of Image DSR (' + String(v.version).replace(/[^\d.]/g, '') + ')</b>Your app: ' + m[1] + '.' + m[2] + '.' + m[3] + '. Tap Update, download and install it.';
+      $('banU').classList.add('on');
+      $('goU').onclick = () => { location.href = APK + '?v=' + v.build; };
+      $('xU').onclick = () => { $('banU').classList.remove('on'); try { sessionStorage.setItem('dsr_s_upd_later', String(v.build)); } catch (e) {} };
+    } catch (e) {}
+  })();
 
   // Android (not inside the app): offer the APK, also to people using the old installed web app
   if (isAndroid && !IS_APP) setTimeout(async () => {
