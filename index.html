@@ -146,7 +146,7 @@
       // the app page asks the Android app for something (only these actions)
       const N = window.DSRNative, m = String(e.data.m || ''), a = Array.isArray(e.data.a) ? e.data.a : [];
       let r = '';
-      if (N && ['getPushToken', 'appVersion', 'saveFile', 'shareFile', 'openUrl'].indexOf(m) >= 0 && typeof N[m] === 'function') {
+      if (N && ['getPushToken', 'appVersion', 'saveFile', 'shareFile', 'openUrl', 'setSecure'].indexOf(m) >= 0 && typeof N[m] === 'function') {
         try { r = N[m].apply(N, a.map(x => x == null ? '' : String(x))); } catch (x) { r = ''; }
       }
       e.source.postMessage({ dsr: 'native-reply', id: e.data.id, r: r == null ? '' : String(r) }, e.origin);
