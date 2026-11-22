@@ -60,7 +60,7 @@
 <!-- =========================================================
      PUT YOUR APPS SCRIPT WEB APP LINK HERE (Deploy > Manage deployments > Web app URL, ends with /exec)
      ========================================================= -->
-<iframe id="app" title="Image DSR" credentialless allow="camera; microphone; clipboard-read; clipboard-write; geolocation"
+<iframe id="app" title="Image DSR" credentialless allow="camera; microphone; clipboard-read; clipboard-write; geolocation; web-share"
         src="https://script.google.com/macros/s/AKfycbzPmnCgugVUtT0TlRGaT_A9yEuz4H2claaL_iFXx-XmUjPmNkwRomZ031KHk3tKIFtb-g/exec"></iframe>
 
 <!-- Browser can install: one-tap Install -->
@@ -148,6 +148,20 @@
       try { e.data.value == null ? localStorage.removeItem(e.data.key) : localStorage.setItem(e.data.key, String(e.data.value)); } catch (x) {}
     } else if (e.data.dsr === 'stok') {
       try { e.data.value ? sessionStorage.setItem('dsr_s_tok', String(e.data.value).slice(0, 100)) : sessionStorage.removeItem('dsr_s_tok'); } catch (x) {}
+    } else if (e.data.dsr === 'share' && Array.isArray(e.data.files)) {
+      // the app asks to share files (e.g. Own Stores Report on WhatsApp): the phone's Share works only on this top page
+      let r = 'no', use = null;
+      try {
+        const F = e.data.files.slice(0, 4).map(f => {
+          const bin = atob(String(f.b64 || '')), u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          return new File([u8], String(f.n || 'file').slice(0, 80), { type: String(f.t || 'application/octet-stream') });
+        });
+        if (navigator.canShare && navigator.canShare({ files: F })) { use = F; r = 'ok'; }
+        else if (F.length > 1 && navigator.canShare && navigator.canShare({ files: [F[0]] })) { use = [F[0]]; r = 'one'; }
+      } catch (x) { use = null; r = 'no'; }
+      e.source.postMessage({ dsr: 'share-reply', id: e.data.id, r: r }, e.origin);
+      if (use) navigator.share({ files: use, text: String(e.data.text || '').slice(0, 200) }).catch(() => {});
     } else if (e.data.dsr === 'push-ask') {
       if (!IS_APP) pushAsk(e.source, e.origin);       // salesman logged in on a phone (the app handles it itself)
     } else if (e.data.dsr === 'native' && IS_APP) {
